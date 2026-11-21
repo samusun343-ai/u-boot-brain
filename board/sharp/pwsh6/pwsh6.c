@@ -35,6 +35,17 @@ DECLARE_GLOBAL_DATA_PTR;
  */
 int board_early_init_f(void)
 {
+	/*
+	 * Set up the EMI and CPU/HBUS clocks first.  On the EBOOT ->
+	 * nk.bin boot path the SPL never runs, so without this the
+	 * whole system stays on the 24MHz XTAL (a divider-only tweak
+	 * cannot help while the PLL path is bypassed).  This ports
+	 * the SPL clock/power sequences; see ../common/cpu_clkdiv.c.
+	 */
+	mxs_setup_vddd();
+	mxs_setup_emi_clock();
+	mxs_setup_cpu_clock();
+
 	/* IO0 clock at 480MHz */
 	mxs_set_ioclk(MXC_IOCLK0, 480000);
 	/* IO1 clock at 480MHz */
@@ -44,8 +55,6 @@ int board_early_init_f(void)
 	mxs_set_sspclk(MXC_SSPCLK0, 96000, 0);
 	/* SSP1 clock at 96MHz */
 	mxs_set_sspclk(MXC_SSPCLK1, 96000, 0);
-	/* set cpu clock div 1(480MHz)*/
-	mxs_set_divcpu(1);
 
 #ifdef CONFIG_CMD_USB
 	mxs_iomux_setup_pad(MX28_PAD_SSP2_SS1__USB1_OVERCURRENT);
