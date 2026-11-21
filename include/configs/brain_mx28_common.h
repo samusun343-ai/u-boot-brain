@@ -52,7 +52,19 @@
 #define CONFIG_LOADADDR		0x42000000
 #define CONFIG_SYS_LOAD_ADDR	CONFIG_LOADADDR
 
-/* Extra Environment */
+/* Extra Environment
+ *
+ * The root filesystem is located by PARTUUID, resolved at boot time
+ * by the "setroot" step of selectsd/selectemmc.  The kernel assigns
+ * mmcblk numbers in MMC host registration order, which is not
+ * stable: with two mxs-mmc hosts present the SD card can come up as
+ * mmcblk0 instead of mmcblk1, and a hard-coded root=/dev/mmcblk1p2
+ * then points at an eMMC partition and panics.  The MBR disk
+ * signature differs between image builds, so the PARTUUID cannot be
+ * hard-coded either; it must be read from the selected device.
+ * sdroot/emmcroot remain as the fallback used only when the PARTUUID
+ * lookup itself fails.
+ */
 #define CONFIG_EXTRA_ENV_SETTINGS \
 	"stdin=serial\0" \
 	"stdout=serial,vga\0" \
@@ -80,26 +92,40 @@
 		"exit $returncode\0" \
 	"sddev=1\0" \
 	"sdpart=1\0" \
-	"sdroot=/dev/mmcblk1p2 rw rootwait\0" \
+	"sdrootpart=2\0" \
+	"sdroot=/dev/mmcblk1p2\0" \
 	"selectsd=" \
 		"setenv dev ${sddev}; " \
 		"setenv part ${sdpart}; " \
-		"setenv root ${sdroot}; " \
+		"setenv rootpart ${sdrootpart}; " \
+		"setenv rootfallback ${sdroot}; " \
 		"setenv devname SD; " \
 		"run quiet; " \
 		"mmc dev ${dev}; " \
-		"run unquiet\0" \
+		"run unquiet; " \
+		"run setroot\0" \
 	"emmcdev=0\0" \
 	"emmcpart=1\0" \
-	"emmcroot=/dev/mmcblk0p3 rw rootwait\0" \
+	"emmcrootpart=3\0" \
+	"emmcroot=/dev/mmcblk0p3\0" \
 	"selectemmc=" \
 		"setenv dev ${emmcdev}; " \
 		"setenv part ${emmcpart}; " \
-		"setenv root ${emmcroot}; " \
+		"setenv rootpart ${emmcrootpart}; " \
+		"setenv rootfallback ${emmcroot}; " \
 		"setenv devname eMMC; " \
 		"run quiet; " \
 		"mmc dev ${dev}; " \
-		"run unquiet\0" \
+		"run unquiet; " \
+		"run setroot\0" \
+	"setroot=" \
+		"if part uuid mmc ${dev}:${rootpart} rootuuid; then " \
+			"setenv root PARTUUID=${rootuuid}; " \
+		"else " \
+			"echo Warning: cannot resolve root PARTUUID, using ${rootfallback}; " \
+			"setenv root ${rootfallback}; " \
+		"fi; " \
+		"setenv root ${root} rw rootwait\0" \
 	"loadimage=" \
 		"run quiet; " \
 		"fatload mmc ${dev}:${part} ${loadaddr} ${image}; " \
