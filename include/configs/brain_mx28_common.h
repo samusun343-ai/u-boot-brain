@@ -73,7 +73,7 @@
 	"videomode=video=ctfb:x:" CONFIG_LCD_X ",y:" CONFIG_LCD_Y ",depth:16,pclk:30857,le:0,ri:0,up:0,lo:0,hs:0,vs:0,sync:0,vmode:0\0" \
 	"image=zImage\0" \
 	"console_mainline=ttyAMA0\0" \
-	"bootargs_custom=fbcon=font:ProFont6x11\0" \
+	"bootargs_custom=fbcon=font:ProFont6x11 vt.global_cursor_default=0\0" \
 	"bootorder=emmc sd\0" \
 	"fdt_file=" CONFIG_DEFAULT_FDT_FILE "\0" \
 	"fdt_addr=0x41000000\0" \
